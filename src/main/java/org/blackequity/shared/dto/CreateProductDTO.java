@@ -12,5 +12,6 @@ public class CreateProductDTO {
     private BigDecimal price;
     private Integer stock;
     private Integer minStock;
+    private Long categoryId;
 
 }

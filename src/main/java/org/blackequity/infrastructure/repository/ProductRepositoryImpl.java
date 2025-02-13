@@ -2,9 +2,9 @@ package org.blackequity.infrastructure.repository;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import org.blackequity.domain.model.Product;
 import org.blackequity.domain.repository.product.IProductRepository;
-import org.blackequity.infrastructure.repository.panache.ProductPanacheRepository;
 
 import java.util.List;
 
@@ -12,20 +12,22 @@ import java.util.List;
 public class ProductRepositoryImpl implements IProductRepository {
 
     @Inject
-    ProductPanacheRepository productPanacheRepository;
+    EntityManager entityManager;
 
     @Override
     public void save(Product product) {
-        productPanacheRepository.persist(product);
+        entityManager.persist(product);
     }
 
     @Override
     public List<Product> findAll() {
-        return productPanacheRepository.listAll();
+        return entityManager.createQuery("SELECT p FROM Product p", Product.class).getResultList();
     }
 
     @Override
     public List<Product> findByCategoryName(String categoryName) {
-        return productPanacheRepository.findByCategoryName(categoryName);
+        return entityManager.createQuery("SELECT p FROM Product p WHERE p.category.name = :categoryName", Product.class)
+                .setParameter("categoryName", categoryName)
+                .getResultList();
     }
 }
