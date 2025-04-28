@@ -2,18 +2,18 @@ package org.blackequity.printer.config;
 
 import org.jboss.logging.Logger;
 
+import javax.print.Doc;
+import javax.print.DocFlavor;
+import javax.print.DocPrintJob;
+import javax.print.PrintService;
+import javax.print.PrintServiceLookup;
+import javax.print.SimpleDoc;
+import javax.print.attribute.HashPrintRequestAttributeSet;
+import javax.print.attribute.PrintRequestAttributeSet;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.concurrent.atomic.AtomicBoolean;
-import javax.print.PrintService;
-import javax.print.PrintServiceLookup;
-import javax.print.DocFlavor;
-import javax.print.DocPrintJob;
-import javax.print.SimpleDoc;
-import javax.print.Doc;
-import javax.print.attribute.HashPrintRequestAttributeSet;
-import javax.print.attribute.PrintRequestAttributeSet;
 
 /**
  * Implementación para SAT q22 en Windows

@@ -1,9 +1,9 @@
 package org.blackequity.printer.service;
 
 
-
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import org.blackequity.printer.config.PrinterConnector;
 import org.blackequity.printer.domain.PrinterStatus;
@@ -12,8 +12,6 @@ import org.blackequity.printer.domain.TicketRequest;
 import org.blackequity.printer.util.EscPosCommands;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
-
-import jakarta.enterprise.context.ApplicationScoped;
 
 import java.io.IOException;
 import java.io.OutputStream;
