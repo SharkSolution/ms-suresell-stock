@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger AWS CodePipeline
-        uses: aws-actions/aws-codepipeline-action@v1
+        uses: aws-actions/aws-cli-action@v1
         with:
           name: pipeline-ms-suresell-stock
           region: us-east-1
