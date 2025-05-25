@@ -1,0 +1,25 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo "Compilando Quarkus App..."
+      - chmod +x ./gradlew
+      - ./gradlew build -Dquarkus.package.type=fast-jar -x test
+      - echo "Login en ECR"
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 654479365413.dkr.ecr.us-east-1.amazonaws.com
+
+  build:
+    commands:
+      - echo "Construyendo imagen Docker..."
+      - docker build -t ms-suresell-stock .
+
+  post_build:
+    commands:
+      - echo "Publicando imagen en ECR..."
+      - docker tag ms-suresell-stock:latest 654479365413.dkr.ecr.us-east-1.amazonaws.com/ms-suresell-stock:latest
+      - docker push 654479365413.dkr.ecr.us-east-1.amazonaws.com/ms-suresell-stock:latest
+
+artifacts:
+  files:
+    - Dockerrun.aws.json
