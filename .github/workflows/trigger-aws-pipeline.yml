@@ -3,7 +3,7 @@ name: Trigger AWS Pipeline on Merge to master
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   trigger-pipeline:
