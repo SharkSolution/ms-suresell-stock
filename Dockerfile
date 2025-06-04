@@ -1,5 +1,5 @@
 # Etapa final: solo empaquetar lo generado en /build
-FROM eclipse-temurin:17-jre
+FROM public.ecr.aws/amazoncorretto/amazoncorretto:17-jre
 WORKDIR /work
 COPY build/quarkus-app/lib/ /work/lib/
 COPY build/quarkus-app/*.jar /work/
