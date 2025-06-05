@@ -1,23 +1,19 @@
+version: 0.2
 phases:
   pre_build:
     commands:
-      - echo "Compilando Quarkus App..."
+      - echo "Compilando aplicación Quarkus..."
       - chmod +x ./gradlew
-      - ./gradlew build -Dquarkus.package.type=fast-jar -x test
-      - echo "Login en ECR"
-      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 654479365413.dkr.ecr.us-east-1.amazonaws.com
   build:
     commands:
-      - echo "Construyendo imagen Docker..."
-      - docker build -t ms-suresell-stock .
+      - echo "Generando JAR ejecutable..."
+      - ./gradlew clean build -Dquarkus.package.type=uber-jar -x test
+      - echo "JAR generado correctamente"
   post_build:
     commands:
-      - echo "Publicando imagen en ECR..."
-      - docker tag ms-suresell-stock:latest 654479365413.dkr.ecr.us-east-1.amazonaws.com/ms-suresell-stock:latest
-      - docker push 654479365413.dkr.ecr.us-east-1.amazonaws.com/ms-suresell-stock:latest
       - echo "Preparando artifacts para Elastic Beanstalk..."
+      - ls -la build/libs/
 artifacts:
   files:
-    - Dockerrun.aws.json
-    - '**/*'
-  name: eb-app-$(date +%Y-%m-%d)
+    - build/libs/suresell-1.0.0-SNAPSHOT-runner.jar
+  name: eb-java-app-$(date +%Y-%m-%d)
