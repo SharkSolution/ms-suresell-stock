@@ -2,10 +2,12 @@ package org.blackequity.application.usecase;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.blackequity.application.mapper.ShoppingListMapper;
 import org.blackequity.domain.dto.ShoppingItem;
 import org.blackequity.domain.enums.ShoppingItemStatus;
-import org.blackequity.domain.model.ShoppingItemEntity;
 import org.blackequity.domain.repository.shopping.ShoppingListRepository;
+import org.blackequity.shared.dto.CreateShoppingItemRequest;
+import org.blackequity.shared.dto.ShoppingListResponse;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -42,7 +44,11 @@ public class ManageShoppingListUseCase {
                 .orElseThrow(() -> new IllegalArgumentException("Item not found"));
 
         item.updateQuantity(quantity);
-        repository.save(item);
+        try{
+            repository.save(item);
+        }catch (Exception e){
+            System.out.println(e.getMessage());
+        }
     }
 
     public void markItemAsPurchased(String itemId) {

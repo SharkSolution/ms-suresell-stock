@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ShoppingListRepository {
-    List<ShoppingItem> findAll();
     List<ShoppingItem> findByStatus(ShoppingItemStatus status);
     List<ShoppingItem> findByCategory(String category);
     Optional<ShoppingItem> findById(String id);

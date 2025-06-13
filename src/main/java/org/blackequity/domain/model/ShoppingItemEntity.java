@@ -7,7 +7,9 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.blackequity.domain.enums.ShoppingItemStatus;
 
@@ -17,6 +19,8 @@ import java.time.LocalDateTime;
 @Entity
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor
 @Table(name = "shopping_items")
 public class ShoppingItemEntity {
     @Id
@@ -56,26 +60,4 @@ public class ShoppingItemEntity {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    // Constructor vacío para JPA
-    public ShoppingItemEntity() {}
-
-    // Constructor completo
-    public ShoppingItemEntity(String id, String productId, String name, String category,
-                              String unit, BigDecimal currentStock, BigDecimal minimumStock,
-                              BigDecimal suggestedQuantity, BigDecimal estimatedCost,
-                              ShoppingItemStatus status, LocalDateTime createdAt,
-                              LocalDateTime updatedAt) {
-        this.id = id;
-        this.productId = productId;
-        this.name = name;
-        this.category = category;
-        this.unit = unit;
-        this.currentStock = currentStock;
-        this.minimumStock = minimumStock;
-        this.suggestedQuantity = suggestedQuantity;
-        this.estimatedCost = estimatedCost;
-        this.status = status;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-    }
 }

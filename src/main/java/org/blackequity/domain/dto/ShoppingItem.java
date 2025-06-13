@@ -1,6 +1,7 @@
 package org.blackequity.domain.dto;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.blackequity.domain.enums.ShoppingItemStatus;
 
@@ -10,12 +11,13 @@ import java.util.UUID;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class ShoppingItem {
-    private final String id;
-    private final String productId;
-    private final String name;
-    private final String category;
-    private final String unit;
+    private String id;
+    private String productId;
+    private String name;
+    private String category;
+    private String unit;
     private BigDecimal currentStock;
     private BigDecimal minimumStock;
     private BigDecimal suggestedQuantity;
@@ -24,7 +26,6 @@ public class ShoppingItem {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // Constructor para nuevos items
     public ShoppingItem(String productId, String name, String category, String unit,
                         BigDecimal currentStock, BigDecimal minimumStock) {
         this.id = UUID.randomUUID().toString();
@@ -39,24 +40,6 @@ public class ShoppingItem {
         this.status = ShoppingItemStatus.PENDING;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
-    }
-
-    public ShoppingItem(String id, String productId, String name, String category, String unit,
-                        BigDecimal currentStock, BigDecimal minimumStock, BigDecimal suggestedQuantity,
-                        BigDecimal estimatedCost, ShoppingItemStatus status,
-                        LocalDateTime createdAt, LocalDateTime updatedAt) {
-        this.id = id;
-        this.productId = productId;
-        this.name = name;
-        this.category = category;
-        this.unit = unit;
-        this.currentStock = currentStock;
-        this.minimumStock = minimumStock;
-        this.suggestedQuantity = suggestedQuantity;
-        this.estimatedCost = estimatedCost;
-        this.status = status;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
     }
 
     private BigDecimal calculateSuggestedQuantity() {
