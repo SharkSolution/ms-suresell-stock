@@ -50,19 +50,12 @@ public class ManageMealPreparationUseCase {
         return repository.save(meal);
     }
 
-    public WeeklyMealPlanResponse getCurrentWeekPlan() {
-        logger.debug("📅 Obteniendo plan de la semana actual");
+    public WeeklyMealPlanResponse getAllWeekPlan(int offset) {
+        logger.debug("📅 Obteniendo plan semana con offset: {}", offset);
 
-        List<MealPreparation> meals = repository.findCurrentWeek();
-        return mapper.toWeeklyResponse(meals, LocalDate.now());
-    }
-
-    public WeeklyMealPlanResponse getNextWeekPlan() {
-        logger.debug("📅 Obteniendo plan de la semana siguiente");
-
-        List<MealPreparation> meals = repository.findNextWeek();
-        LocalDate nextWeek = LocalDate.now().plusWeeks(1);
-        return mapper.toWeeklyResponse(meals, nextWeek);
+        List<MealPreparation> meals = repository.findByWeekOffset(offset);
+        LocalDate targetWeek = LocalDate.now().plusWeeks(offset);
+        return mapper.toWeeklyResponse(meals, targetWeek);
     }
 
     public WeeklyMealPlanResponse getWeekPlan(LocalDate weekStartDate) {

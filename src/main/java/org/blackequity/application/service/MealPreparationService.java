@@ -27,14 +27,9 @@ public class MealPreparationService {
         return useCase.createMealPreparation(request);
     }
 
-    public WeeklyMealPlanResponse getCurrentWeekPlan() {
-        logger.debug("Obteniendo plan de preparaciones semana actual");
-        return useCase.getCurrentWeekPlan();
-    }
-
-    public WeeklyMealPlanResponse getNextWeekPlan() {
-        logger.debug("Obteniendo plan de preparaciones semana siguiente");
-        return useCase.getNextWeekPlan();
+    public WeeklyMealPlanResponse getAllWeekPlan(int offset) {
+        logger.debug("Obteniendo plan de preparaciones semana anterior, actual y siguiente");
+        return useCase.getAllWeekPlan(offset);
     }
 
     public WeeklyMealPlanResponse getWeekPlan(LocalDate weekStartDate) {

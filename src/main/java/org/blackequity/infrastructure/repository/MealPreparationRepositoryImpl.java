@@ -130,20 +130,13 @@ public class MealPreparationRepositoryImpl implements MealPreparationRepository,
     }
 
     @Override
-    public List<MealPreparation> findCurrentWeek() {
+    public List<MealPreparation> findByWeekOffset(int offset) {
         LocalDate today = LocalDate.now();
-        LocalDate startOfWeek = today.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+        LocalDate targetDate = today.plusWeeks(offset);
+        LocalDate startOfWeek = targetDate.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
 
-        logger.debug("Buscando preparaciones semana actual: {}", startOfWeek);
+        logger.debug("Buscando preparaciones semana offset {}: {}", offset, startOfWeek);
         return findByWeek(startOfWeek);
     }
 
-    @Override
-    public List<MealPreparation> findNextWeek() {
-        LocalDate today = LocalDate.now();
-        LocalDate startOfNextWeek = today.with(TemporalAdjusters.next(java.time.DayOfWeek.MONDAY));
-
-        logger.debug("Buscando preparaciones semana siguiente: {}", startOfNextWeek);
-        return findByWeek(startOfNextWeek);
-    }
 }

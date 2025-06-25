@@ -46,38 +46,23 @@ public class MealPreparationController {
     }
 
     @GET
-    @Path("/current-week")
-    public Response getCurrentWeekPlan() {
-        logger.info("GET /api/meal-preparations/current-week - Obteniendo plan semana actual");
+    @Path("/week/{offset}")
+    public Response getWeekPlan(@PathParam("offset") int offset) {
+        logger.info("GET /api/meal-preparations/week/{} - Obteniendo plan semana offset", offset);
 
         try {
-            WeeklyMealPlanResponse plan = service.getCurrentWeekPlan();
-            logger.info("Plan semana actual obtenido: {} preparaciones", plan.getTotalMeals());
+            WeeklyMealPlanResponse plan = service.getAllWeekPlan(offset);
+            logger.info("Plan semana offset {} obtenido: {} preparaciones", offset, plan.getTotalMeals());
             return Response.ok(plan).build();
         } catch (Exception e) {
-            logger.error("Error obteniendo plan semana actual", e);
-            return Response.serverError().build();
-        }
-    }
-
-    @GET
-    @Path("/next-week")
-    public Response getNextWeekPlan() {
-        logger.info("GET /api/meal-preparations/next-week - Obteniendo plan semana siguiente");
-
-        try {
-            WeeklyMealPlanResponse plan = service.getNextWeekPlan();
-            logger.info("lan semana siguiente obtenido: {} preparaciones", plan.getTotalMeals());
-            return Response.ok(plan).build();
-        } catch (Exception e) {
-            logger.error("Error obteniendo plan semana siguiente", e);
+            logger.error("Error obteniendo plan semana offset: {}", offset, e);
             return Response.serverError().build();
         }
     }
 
     @GET
     @Path("/week/{date}")
-    public Response getWeekPlan(@PathParam("date") String dateStr) {
+    public Response getWeekPlanByDate(@PathParam("date") String dateStr) {
         logger.info("GET /api/meal-preparations/week/{} - Obteniendo plan para fecha", dateStr);
 
         try {
