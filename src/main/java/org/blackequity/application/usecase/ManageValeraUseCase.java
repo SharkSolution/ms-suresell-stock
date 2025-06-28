@@ -116,18 +116,10 @@ public class ManageValeraUseCase {
     @Transactional
     public Valera suspendValera(String valeraId, String reason) {
         logger.info("Suspendiendo valera: {}", valeraId);
-        try {
-            Valera valera = repository.findById(valeraId)
-                    .orElseThrow(() -> new IllegalArgumentException("Valera no encontrada: " + valeraId));
-            valera.suspend(reason);
-            return repository.update(valera);
-        }catch (Exception e){
-            logger.info("qq", e);
-
-        }
-
-
-        return null;
+        Valera valera = repository.findById(valeraId)
+                .orElseThrow(() -> new IllegalArgumentException("Valera no encontrada: " + valeraId));
+        valera.suspend(reason);
+        return repository.update(valera);
     }
 
     @Transactional

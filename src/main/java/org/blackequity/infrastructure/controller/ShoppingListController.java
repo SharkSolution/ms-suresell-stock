@@ -7,6 +7,7 @@ import jakarta.ws.rs.core.Response;
 import org.blackequity.application.service.ShoppingListService;
 import org.blackequity.infrastructure.repository.UpdateQuantityRequest;
 import org.blackequity.shared.dto.CreateShoppingItemRequest;
+import org.blackequity.shared.dto.ShoppingListResponse;
 
 @Path("/api/shopping-list")
 @Produces(MediaType.APPLICATION_JSON)
@@ -18,11 +19,12 @@ public class ShoppingListController {
 
     @GET
     public Response getCurrentShoppingList() {
-        return Response.ok(service.getCurrentList()).build();
+        ShoppingListResponse lista = service.getCurrentList();
+        return Response.ok(lista).build();
     }
 
     @POST
-    public Response createItem(CreateShoppingItemRequest request) {
+    public Response createItem(CreateShoppingItemRequest request) throws Exception {
         var item = service.createItem(request);
         return Response.status(Response.Status.CREATED).entity(item).build();
     }
