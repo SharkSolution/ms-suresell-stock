@@ -46,7 +46,7 @@ public class MealPreparationController {
     }
 
     @GET
-    @Path("/week/{offset}")
+    @Path("/week/general/{offset}")
     public Response getWeekPlan(@PathParam("offset") int offset) {
         logger.info("GET /api/meal-preparations/week/{} - Obteniendo plan semana offset", offset);
 
