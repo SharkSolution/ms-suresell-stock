@@ -22,10 +22,11 @@ public class ShoppingListService {
 
 
     public ShoppingListResponse getCurrentList() {
-        return useCase.getActiveShoppingList();
+        ShoppingListResponse lista = useCase.getActiveShoppingList();
+        return lista;
     }
 
-    public ShoppingItem createItem(CreateShoppingItemRequest request) {
+    public ShoppingItem createItem(CreateShoppingItemRequest request) throws Exception {
         validateRequest(request);
         return useCase.addItem(request);
     }

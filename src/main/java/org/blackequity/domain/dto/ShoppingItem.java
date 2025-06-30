@@ -7,7 +7,6 @@ import org.blackequity.domain.enums.ShoppingItemStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -28,7 +27,7 @@ public class ShoppingItem {
 
     public ShoppingItem(String productId, String name, String category, String unit,
                         BigDecimal currentStock, BigDecimal minimumStock) {
-        this.id = UUID.randomUUID().toString();
+
         this.productId = productId;
         this.name = name;
         this.category = category;

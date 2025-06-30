@@ -2,6 +2,7 @@ package org.blackequity.application.mapper;
 
 
 import org.blackequity.domain.dto.ShoppingItem;
+import org.blackequity.domain.model.ShoppingItemEntity;
 import org.blackequity.shared.dto.ShoppingListResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants;
@@ -16,6 +17,7 @@ import java.util.List;
 public interface ShoppingListMapper {
 
     List<ShoppingItem> toDto(List<ShoppingItem> items);
+    List<ShoppingItem> toEntity(List<ShoppingItemEntity> items);
 
     default ShoppingListResponse toResponse(List<ShoppingItem> items) {
         List<ShoppingItem> dtos = toDto(items);

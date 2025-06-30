@@ -10,6 +10,7 @@ import org.blackequity.shared.dto.CreateShoppingItemRequest;
 import org.blackequity.shared.dto.ShoppingListResponse;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 @ApplicationScoped
@@ -22,11 +23,16 @@ public class ManageShoppingListUseCase {
     ShoppingListMapper mapper;
 
     public ShoppingListResponse getActiveShoppingList() {
-        List<ShoppingItem> items = repository.findByStatus(ShoppingItemStatus.PENDING);
-        return mapper.toResponse(items);
+        List<ShoppingItem> itemsPending = repository.findByStatus(ShoppingItemStatus.PENDING);
+        List<ShoppingItem> itemsPurchase = repository.findByStatus(ShoppingItemStatus.PURCHASED);
+
+        List<ShoppingItem> itemsConcated = new ArrayList<>();
+        itemsConcated.addAll(itemsPurchase);
+        itemsConcated.addAll(itemsPending);
+        return mapper.toResponse(itemsConcated);
     }
 
-    public ShoppingItem addItem(CreateShoppingItemRequest request) {
+    public ShoppingItem addItem(CreateShoppingItemRequest request) throws Exception {
         ShoppingItem item = new ShoppingItem(
                 request.getProductId(),
                 request.getName(),
@@ -35,8 +41,11 @@ public class ManageShoppingListUseCase {
                 request.getCurrentStock(),
                 request.getMinimumStock()
         );
-
-        return repository.save(item);
+        try{
+            return repository.save(item);
+        }catch (Exception e) {
+            throw new Exception("www");
+        }
     }
 
     public void updateItemQuantity(String itemId, BigDecimal quantity) {

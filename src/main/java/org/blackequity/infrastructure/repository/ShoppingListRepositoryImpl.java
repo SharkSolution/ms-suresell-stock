@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
@@ -23,8 +24,6 @@ public class ShoppingListRepositoryImpl implements ShoppingListRepository, Panac
     ShoppingItemEntityMapper mapper;
 
     private static final Logger logger = LoggerFactory.getLogger(ShoppingListRepositoryImpl.class);
-
-
 
     @Override
     public List<ShoppingItem> findByStatus(ShoppingItemStatus status) {
@@ -57,6 +56,7 @@ public class ShoppingListRepositoryImpl implements ShoppingListRepository, Panac
         if (item.getId() != null) {
             return updateExistingItem(item);
         } else {
+            item.setId(UUID.randomUUID().toString());
             return createNewItem(item);
         }
     }
@@ -117,4 +117,5 @@ public class ShoppingListRepositoryImpl implements ShoppingListRepository, Panac
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
     }
+
 }

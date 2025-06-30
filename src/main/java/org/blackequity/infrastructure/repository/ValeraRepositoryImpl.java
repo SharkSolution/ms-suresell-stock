@@ -38,7 +38,7 @@ public class ValeraRepositoryImpl implements ValeraRepository, PanacheRepository
     public Optional<Valera> findById(String id) {
         logger.debug("Buscando valera por ID: {}", id);
         try{
-            return find("id", id).stream()
+            return find("code", id).stream()
                     .findFirst()
                     .map(mapper::toDomain);
         } catch (Exception e) {
