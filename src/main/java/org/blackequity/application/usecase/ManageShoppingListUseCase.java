@@ -12,6 +12,7 @@ import org.blackequity.shared.dto.ShoppingListResponse;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @ApplicationScoped
 public class ManageShoppingListUseCase {
@@ -34,7 +35,7 @@ public class ManageShoppingListUseCase {
 
     public ShoppingItem addItem(CreateShoppingItemRequest request) throws Exception {
         ShoppingItem item = new ShoppingItem(
-                request.getProductId(),
+                UUID.randomUUID().toString(),
                 request.getName(),
                 request.getCategory(),
                 request.getUnit(),

@@ -16,6 +16,5 @@ public interface MealPreparationRepository {
     List<MealPreparation> findByDayOfWeek(DayOfWeek dayOfWeek);
     MealPreparation save(MealPreparation mealPreparation);
     void deleteById(String id);
-    List<MealPreparation> findCurrentWeek();
-    List<MealPreparation> findNextWeek();
+    List<MealPreparation> findByWeekOffset(int offset);
 }

@@ -5,6 +5,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.blackequity.application.usecase.CreateProductUseCase;
+import org.blackequity.application.usecase.GetProductsByCategoryUseCase;
+import org.blackequity.domain.model.Product;
 import org.blackequity.shared.dto.CreateProductDTO;
 import org.blackequity.shared.dto.ProductDTO;
 
@@ -17,6 +19,9 @@ public class ProductService {
 
     @Inject
     CreateProductUseCase createProductUseCase;
+
+    @Inject
+    GetProductsByCategoryUseCase getProductsByCategoryUseCase;
 
     @Transactional
     public void createProduct(CreateProductDTO dto) {
@@ -31,6 +36,14 @@ public class ProductService {
 
     public List<ProductDTO> getAllProducts() {
         return createProductUseCase.findAll().stream()
+                .map(product -> new ProductDTO(product.getId(), product.getName(), product.getPrice(), product.getStock(), product.getMinStock()))
+                .collect(Collectors.toList());
+    }
+
+    public List<ProductDTO> getProductsByCategory(Long categoryId) {
+        List<Product> products = getProductsByCategoryUseCase.execute(categoryId);
+
+        return products.stream()
                 .map(product -> new ProductDTO(product.getId(), product.getName(), product.getPrice(), product.getStock(), product.getMinStock()))
                 .collect(Collectors.toList());
     }

@@ -1,11 +1,7 @@
 package org.blackequity.infrastructure.controller;
 
 import jakarta.inject.Inject;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.blackequity.application.service.ProductService;
@@ -24,6 +20,7 @@ public class ProductController {
     ProductService productService;
 
     @POST
+    @Path("/create")
     public Response createProduct(CreateProductDTO dto) {
         try {
             productService.createProduct(dto);
@@ -40,6 +37,23 @@ public class ProductController {
         try {
             List<ProductDTO> products = productService.getAllProducts();
             return Response.ok(products).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of("error", e.getMessage()))
+                    .build();
+        }
+    }
+
+    @GET
+    @Path("/category/{categoryId}")
+    public Response getProductsByCategory(@PathParam("categoryId") Long categoryId) {
+        try {
+            List<ProductDTO> products = productService.getProductsByCategory(categoryId);
+            return Response.ok(products).build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", "Category not found"))
+                    .build();
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(Map.of("error", e.getMessage()))
