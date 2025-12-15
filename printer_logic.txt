@@ -1,0 +1,1090 @@
+// Content from src/main/java/org/blackequity/printer/api;
+package org.blackequity.printer.api;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import org.blackequity.printer.domain.PrintResponse;
+import org.blackequity.printer.domain.PrinterStatus;
+import org.blackequity.printer.domain.TicketRequest;
+import org.blackequity.printer.service.PrinterService;
+import org.jboss.logging.Logger;
+
+
+@Path("/api/print")
+@ApplicationScoped
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+public class PrinterResource {
+
+    private static final Logger LOGGER = Logger.getLogger(PrinterResource.class);
+
+    @Inject
+    PrinterService printerService;
+
+    /**
+     * Imprime un ticket de venta
+     */
+    @POST
+    @Path("/ticket")
+    public Response printTicket(TicketRequest ticketRequest) {
+        try {
+            printerService.printTicket(ticketRequest);
+            return Response.ok(new PrintResponse(true, "Ticket impreso correctamente")).build();
+        } catch (Exception e) {
+            LOGGER.error("Error al imprimir ticket", e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(new PrintResponse(false, "Error al imprimir: " + e.getMessage()))
+                    .build();
+        }
+    }
+
+    /**
+     * Imprime un ticket de test para verificar la configuración
+     */
+    @GET
+    @Path("/test")
+    public Response printTestTicket() {
+        try {
+            printerService.printTestTicket();
+            return Response.ok(new PrintResponse(true, "Ticket de prueba impreso correctamente")).build();
+        } catch (Exception e) {
+            LOGGER.error("Error al imprimir ticket de prueba", e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(new PrintResponse(false, "Error al imprimir: " + e.getMessage()))
+                    .build();
+        }
+    }
+
+    /**
+     * Verifica el estado de la impresora
+     */
+    @GET
+    @Path("/status")
+    public Response getPrinterStatus() {
+        try {
+            PrinterStatus status = printerService.getPrinterStatus();
+            return Response.ok(status).build();
+        } catch (Exception e) {
+            LOGGER.error("Error al obtener estado de la impresora", e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(new PrintResponse(false, "Error: " + e.getMessage()))
+                    .build();
+        }
+    }
+
+    /**
+     * Abre el cajón monedero
+     */
+    @POST
+    @Path("/drawer/open")
+    public Response openCashDrawer() {
+        try {
+            printerService.openCashDrawer();
+            return Response.ok(new PrintResponse(true, "Cajón monedero abierto correctamente")).build();
+        } catch (Exception e) {
+            LOGGER.error("Error al abrir cajón monedero", e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(new PrintResponse(false, "Error al abrir cajón: " + e.getMessage()))
+                    .build();
+        }
+    }
+
+}
+// Content from src/main/java/org/blackequity/printer/config/PrinterConnector.java
+package org.blackequity.printer.config;
+
+import org.jboss.logging.Logger;
+
+import javax.print.Doc;
+import javax.print.DocFlavor;
+import javax.print.DocPrintJob;
+import javax.print.PrintService;
+import javax.print.PrintServiceLookup;
+import javax.print.SimpleDoc;
+import javax.print.attribute.HashPrintRequestAttributeSet;
+import javax.print.attribute.PrintRequestAttributeSet;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+/**
+ * Implementación para SAT q22 en Windows
+ */
+public class PrinterConnector {
+
+    private static final Logger LOGGER = Logger.getLogger(PrinterConnector.class);
+
+    private String printerName;
+    private PrintService printService;
+    private WindowsPrinterOutputStream outputStream;
+    private AtomicBoolean connected = new AtomicBoolean(false);
+
+    public PrinterConnector(String printerPort) {
+        this.printerName = printerPort;
+    }
+
+    public void connect() throws IOException {
+        if (connected.get()) {
+            LOGGER.warn("La impresora ya está conectada");
+            return;
+        }
+
+        LOGGER.info("Conectando a impresora SAT q22 en Windows");
+
+        try {
+            printService = findPrintService(printerName);
+
+            if (printService == null) {
+                LOGGER.warn("No se encontró la impresora con nombre: " + printerName + ". Intentando usar la impresora por defecto.");
+                printService = PrintServiceLookup.lookupDefaultPrintService();
+
+                if (printService == null) {
+                    throw new IOException("No se encontró ninguna impresora disponible");
+                }
+            }
+
+            LOGGER.info("Impresora encontrada: " + printService.getName());
+
+            outputStream = new WindowsPrinterOutputStream(printService);
+
+            connected.set(true);
+            LOGGER.info("Conexión establecida con impresora " + printService.getName());
+        } catch (Exception e) {
+            LOGGER.error("Error al conectar con impresora", e);
+            throw new IOException("No se pudo conectar con la impresora: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Cierra la conexión con la impresora
+     */
+    public void disconnect() throws IOException {
+        if (!connected.get()) {
+            LOGGER.warn("La impresora no está conectada");
+            return;
+        }
+
+        LOGGER.info("Desconectando impresora");
+
+        try {
+            if (outputStream != null) {
+                outputStream.close();
+                outputStream = null;
+            }
+            connected.set(false);
+            LOGGER.info("Impresora desconectada correctamente");
+        } catch (Exception e) {
+            LOGGER.error("Error al desconectar impresora", e);
+            throw new IOException("Error al desconectar: " + e.getMessage(), e);
+        }
+    }
+
+    public OutputStream getOutputStream() throws IOException {
+        if (!connected.get() || outputStream == null) {
+            connect();
+        }
+        return outputStream;
+    }
+
+    /**
+     * Verifica si hay conexión con la impresor
+     */
+    public boolean isConnected() {
+        return connected.get() && outputStream != null;
+    }
+
+    /**
+     * Busca un servicio de impresión por nombre
+     */
+    private PrintService findPrintService(String printerName) {
+        PrintService[] printServices = PrintServiceLookup.lookupPrintServices(null, null);
+        LOGGER.info("Impresoras encontradas en el sistema: " + printServices.length);
+
+        for (PrintService service : printServices) {
+            LOGGER.info("- " + service.getName());
+
+            if (service.getName().toLowerCase().contains(printerName.toLowerCase()) ||
+                    service.getName().equalsIgnoreCase(printerName)) {
+                return service;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Clase personalizada de OutputStream para impresoras en Windows
+     */
+    private class WindowsPrinterOutputStream extends OutputStream {
+        private PrintService printService;
+        private byte[] buffer;
+        private int position;
+        private static final int BUFFER_SIZE = 8192;
+
+        public WindowsPrinterOutputStream(PrintService printService) {
+            this.printService = printService;
+            this.buffer = new byte[BUFFER_SIZE];
+            this.position = 0;
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            if (position >= BUFFER_SIZE) {
+                flush();
+            }
+
+            buffer[position++] = (byte) b;
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) throws IOException {
+            if (position + len > BUFFER_SIZE) {
+                flush();
+
+                // Si es más grande que el buffer, enviamos directamente
+                if (len > BUFFER_SIZE) {
+                    byte[] temp = new byte[len];
+                    System.arraycopy(b, off, temp, 0, len);
+                    sendToPrinter(temp);
+                    return;
+                }
+            }
+
+            System.arraycopy(b, off, buffer, position, len);
+            position += len;
+        }
+
+        @Override
+        public void flush() throws IOException {
+            if (position > 0) {
+                byte[] temp = new byte[position];
+                System.arraycopy(buffer, 0, temp, 0, position);
+                sendToPrinter(temp);
+                position = 0;
+            }
+        }
+
+        @Override
+        public void close() throws IOException {
+            flush();
+        }
+
+        private void sendToPrinter(byte[] data) throws IOException {
+            try {
+                DocPrintJob job = printService.createPrintJob();
+                Doc doc = new SimpleDoc(data, DocFlavor.BYTE_ARRAY.AUTOSENSE, null);
+                PrintRequestAttributeSet attributes = new HashPrintRequestAttributeSet();
+                job.print(doc, attributes);
+
+                // Pequeña pausa para asegurar que la impresora procese los datos
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            } catch (Exception e) {
+                throw new IOException("Error al enviar datos a la impresora: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    public java.io.InputStream getInputStream() throws IOException {
+        // En la implementación de Windows con javax.print, la comunicación bidireccional
+        // no está implementada de manera estándar. Se devuelve null por defecto.
+        LOGGER.warn("La comunicación bidireccional no está implementada para este conector");
+        return null;
+    }
+
+    public Boolean isCashDrawerOpen() {
+        LOGGER.info("Consultando estado del cajón monedero (modo bidireccional)");
+
+        // Verificamos primero si la impresora está conectada
+        if (!isConnected()) {
+            try {
+                connect();
+            } catch (IOException e) {
+                LOGGER.error("No se pudo conectar con la impresora", e);
+                return null;
+            }
+        }
+
+        try {
+            // 1. Preparamos el comando de consulta de estado
+            byte[] statusCommand = new byte[3];
+            statusCommand[0] = 16;  // DLE
+            statusCommand[1] = 4;   // EOT
+            statusCommand[2] = 1;   // n=1 (estado de impresora)
+
+            // 2. Limpiamos cualquier dato en el buffer de entrada
+            InputStream inputStream = getInputStream();
+            if (inputStream == null) {
+                LOGGER.warn("No hay soporte para comunicación bidireccional");
+                return null;
+            }
+
+            int available = inputStream.available();
+            if (available > 0) {
+                inputStream.skip(available);
+            }
+
+            // 3. Enviamos el comando de consulta
+            OutputStream outputStream = getOutputStream();
+            outputStream.write(statusCommand);
+            outputStream.flush();
+
+            // 4. Esperamos respuesta (máximo 1 segundo)
+            long startTime = System.currentTimeMillis();
+            while (inputStream.available() == 0) {
+                if (System.currentTimeMillis() - startTime > 1000) {
+                    LOGGER.warn("Timeout esperando respuesta de la impresora");
+                    return null;
+                }
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+
+            // 5. Leemos la respuesta
+            int response = inputStream.read();
+            LOGGER.debug("Respuesta de estado recibida: " + response);
+
+            // 6. Interpretamos la respuesta
+            // Según el protocolo ESC/POS, el bit 2 (valor 4) indica si el cajón está abierto
+            // 1 = abierto, 0 = cerrado
+            if (response != -1) {
+                // Comprobamos el bit 2
+                boolean drawerOpen = ((response & 0x04) != 0);
+                LOGGER.info("Estado del cajón según la impresora: " + (drawerOpen ? "ABIERTO" : "CERRADO"));
+                return drawerOpen;
+            } else {
+                LOGGER.warn("No se recibió respuesta válida de la impresora");
+                return null;
+            }
+        } catch (IOException e) {
+            LOGGER.error("Error al comunicarse con la impresora", e);
+            return null;
+        }
+    }
+}
+// Content from src/main/java/org/blackequity/printer/domain/PrinterStatus.java
+package org.blackequity.printer.domain;
+
+/**
+ * Clase que representa el estado actual de la impresora
+ */
+public class PrinterStatus {
+
+    private boolean connected;
+    private String printerName;
+    private String printerPort;
+    private boolean hasPaper;
+    private Boolean drawerOpen; // Usando Boolean para permitir valor nulo (estado desconocido)
+
+    /**
+     * Constructor
+     *
+     * @param connected estado de conexión
+     * @param printerName nombre del modelo de impresora
+     * @param printerPort puerto donde está conectada
+     * @param hasPaper si tiene papel disponible
+     */
+    public PrinterStatus(boolean connected, String printerName, String printerPort, boolean hasPaper) {
+        this.connected = connected;
+        this.printerName = printerName;
+        this.printerPort = printerPort;
+        this.hasPaper = hasPaper;
+        this.drawerOpen = null; // Por defecto, estado desconocido
+    }
+
+    /**
+     * Constructor con estado del cajón
+     */
+    public PrinterStatus(boolean connected, String printerName, String printerPort,
+                         boolean hasPaper, Boolean drawerOpen) {
+        this.connected = connected;
+        this.printerName = printerName;
+        this.printerPort = printerPort;
+        this.hasPaper = hasPaper;
+        this.drawerOpen = drawerOpen;
+    }
+
+    // Getters y Setters
+
+    public boolean isConnected() {
+        return connected;
+    }
+
+    public void setConnected(boolean connected) {
+        this.connected = connected;
+    }
+
+    public String getPrinterName() {
+        return printerName;
+    }
+
+    public void setPrinterName(String printerName) {
+        this.printerName = printerName;
+    }
+
+    public String getPrinterPort() {
+        return printerPort;
+    }
+
+    public void setPrinterPort(String printerPort) {
+        this.printerPort = printerPort;
+    }
+
+    public boolean isHasPaper() {
+        return hasPaper;
+    }
+
+    public void setHasPaper(boolean hasPaper) {
+        this.hasPaper = hasPaper;
+    }
+
+    public Boolean isDrawerOpen() {
+        return drawerOpen;
+    }
+
+    public void setDrawerOpen(Boolean drawerOpen) {
+        this.drawerOpen = drawerOpen;
+    }
+}
+// Content from src/main/java/org/blackequity/printer/domain/PrintResponse.java
+package org.blackequity.printer.domain;
+
+/**
+ * Clase que representa la respuesta a una solicitud de impresión
+ */
+public class PrintResponse {
+
+    private boolean success;
+    private String message;
+
+    /**
+     * Constructor
+     *
+     * @param success si la operación fue exitosa
+     * @param message mensaje descriptivo del resultado
+     */
+    public PrintResponse(boolean success, String message) {
+        this.success = success;
+        this.message = message;
+    }
+
+    // Getters y Setters
+
+    public boolean isSuccess() {
+        return success;
+    }
+
+    public void setSuccess(boolean success) {
+        this.success = success;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+}
+// Content from src/main/java/org/blackequity/printer/domain/TicketItem.java
+package org.blackequity.printer.domain;
+
+
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
+import java.math.BigDecimal;
+
+/**
+ * Clase que representa un item individual en un ticket
+ */
+public class TicketItem {
+
+    @NotBlank(message = "El nombre del producto es obligatorio")
+    private String name;
+
+    @NotNull(message = "La cantidad es obligatoria")
+    @Min(value = 1, message = "La cantidad debe ser al menos 1")
+    private Integer quantity;
+
+    @NotNull(message = "El precio unitario es obligatorio")
+    private BigDecimal unitPrice;
+
+    @NotNull(message = "El total es obligatorio")
+    private BigDecimal total;
+
+    // Getters y Setters
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public Integer getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(Integer quantity) {
+        this.quantity = quantity;
+    }
+
+    public BigDecimal getUnitPrice() {
+        return unitPrice;
+    }
+
+    public void setUnitPrice(BigDecimal unitPrice) {
+        this.unitPrice = unitPrice;
+    }
+
+    public BigDecimal getTotal() {
+        return total;
+    }
+
+    public void setTotal(BigDecimal total) {
+        this.total = total;
+    }
+}
+// Content from src/main/java/org/blackequity/printer/domain/TicketRequest.java
+package org.blackequity.printer.domain;
+
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+public class TicketRequest {
+
+    @NotBlank(message = "El nombre del negocio es obligatorio")
+    private String businessName;
+
+    private String address;
+
+    private String phone;
+
+    private String taxId;
+
+    @NotBlank(message = "La fecha y hora son obligatorias")
+    private String dateTime;
+
+    @NotBlank(message = "El número de ticket es obligatorio")
+    private String ticketNumber;
+
+    private String cashierName;
+
+    @NotNull(message = "La lista de items no puede ser nula")
+    @Size(min = 1, message = "Debe haber al menos un item")
+    private List<TicketItem> items;
+
+    @NotNull(message = "El subtotal es obligatorio")
+    private BigDecimal subtotal;
+
+    @NotNull(message = "El impuesto es obligatorio")
+    private BigDecimal tax;
+
+    @NotNull(message = "El total es obligatorio")
+    private BigDecimal total;
+
+    private String paymentMethod;
+
+    private String qrContent;
+
+    // Getters y Setters
+
+    public String getBusinessName() {
+        return businessName;
+    }
+
+    public void setBusinessName(String businessName) {
+        this.businessName = businessName;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getTaxId() {
+        return taxId;
+    }
+
+    public void setTaxId(String taxId) {
+        this.taxId = taxId;
+    }
+
+    public String getDateTime() {
+        return dateTime;
+    }
+
+    public void setDateTime(String dateTime) {
+        this.dateTime = dateTime;
+    }
+
+    public String getTicketNumber() {
+        return ticketNumber;
+    }
+
+    public void setTicketNumber(String ticketNumber) {
+        this.ticketNumber = ticketNumber;
+    }
+
+    public String getCashierName() {
+        return cashierName;
+    }
+
+    public void setCashierName(String cashierName) {
+        this.cashierName = cashierName;
+    }
+
+    public List<TicketItem> getItems() {
+        return items;
+    }
+
+    public void setItems(List<TicketItem> items) {
+        this.items = items;
+    }
+
+    public BigDecimal getSubtotal() {
+        return subtotal;
+    }
+
+    public void setSubtotal(BigDecimal subtotal) {
+        this.subtotal = subtotal;
+    }
+
+    public BigDecimal getTax() {
+        return tax;
+    }
+
+    public void setTax(BigDecimal tax) {
+        this.tax = tax;
+    }
+
+    public BigDecimal getTotal() {
+        return total;
+    }
+
+    public void setTotal(BigDecimal total) {
+        this.total = total;
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
+    }
+
+    public String getQrContent() {
+        return qrContent;
+    }
+
+    public void setQrContent(String qrContent) {
+        this.qrContent = qrContent;
+    }
+}
+// Content from src/main/java/org/blackequity/printer/service/PrinterService.java
+package org.blackequity.printer.service;
+
+
+import io.quarkus.runtime.ShutdownEvent;
+import io.quarkus.runtime.StartupEvent;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
+import org.blackequity.printer.config.PrinterConnector;
+import org.blackequity.printer.domain.PrinterStatus;
+import org.blackequity.printer.domain.TicketItem;
+import org.blackequity.printer.domain.TicketRequest;
+import org.blackequity.printer.util.EscPosCommands;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.jboss.logging.Logger;
+
+import java.io.IOException;
+import java.io.OutputStream;
+
+@ApplicationScoped
+public class PrinterService {
+
+    private static final Logger LOGGER = Logger.getLogger(PrinterService.class);
+
+    @ConfigProperty(name = "printer.port", defaultValue = "COM1")
+    String printerPort;
+
+    @ConfigProperty(name = "printer.name", defaultValue = "DIG-58iiA")
+    String printerName;
+
+    private PrinterConnector printerConnector;
+    private EscPosCommands escPosCommands;
+
+    void onStart(@Observes StartupEvent ev) {
+        LOGGER.info("Inicializando servicio de impresión para " + printerName + " en puerto " + printerPort);
+        this.printerConnector = new PrinterConnector(printerPort);
+        this.escPosCommands = new EscPosCommands();
+
+        try {
+            this.printerConnector.connect();
+            LOGGER.info("Conexión con impresora establecida correctamente");
+        } catch (IOException e) {
+            LOGGER.error("No se pudo establecer conexión con la impresora", e);
+        }
+    }
+
+    void onStop(@Observes ShutdownEvent ev) {
+        LOGGER.info("Cerrando servicio de impresión");
+        try {
+            if (this.printerConnector != null) {
+                this.printerConnector.disconnect();
+            }
+        } catch (IOException e) {
+            LOGGER.error("Error al cerrar conexión con impresora", e);
+        }
+    }
+
+    public void printTicket(TicketRequest ticketRequest) throws IOException {
+        LOGGER.info("Imprimiendo ticket para: " + ticketRequest.getBusinessName());
+
+
+
+        try (OutputStream os = printerConnector.getOutputStream()) {
+            // Inicializar impresora
+            os.write(escPosCommands.initPrinter());
+
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+
+            // Cabecera del ticket
+            os.write(escPosCommands.setAlignment(EscPosCommands.ALIGN_CENTER));
+            os.write(escPosCommands.setBold(true));
+            os.write(escPosCommands.setFontSize(0, 1));
+            os.write((ticketRequest.getBusinessName() + "\n").getBytes());
+            os.write(escPosCommands.setBold(false));
+            os.write(escPosCommands.setFontSize(0, 0));
+            os.write((ticketRequest.getAddress() + "\n").getBytes());
+            os.write(("Tel: " + ticketRequest.getPhone() + "\n").getBytes());
+            os.write(("RFC: " + ticketRequest.getTaxId() + "\n\n").getBytes());
+
+            // Fecha y número de ticket
+            os.write(escPosCommands.setAlignment(EscPosCommands.ALIGN_LEFT));
+            os.write(("Fecha: " + ticketRequest.getDateTime() + "\n").getBytes());
+            os.write(("Ticket #: " + ticketRequest.getTicketNumber() + "\n").getBytes());
+            os.write(("Cajero: " + ticketRequest.getCashierName() + "\n\n").getBytes());
+
+            // Detalle de productos
+            os.write(escPosCommands.setBold(true));
+            os.write("PRODUCTO      CANT   PRECIO   TOTAL\n".getBytes());
+            os.write(escPosCommands.setBold(false));
+            os.write("--------------------------------\n".getBytes());
+
+            for (TicketItem item : ticketRequest.getItems()) {
+                // Formatear para columnas fijas en base al ancho de 48mm
+                String line = String.format("% -14s %2d %8.2f %8.2f\n",
+                        truncate(item.getName(), 14),
+                        item.getQuantity(),
+                        item.getUnitPrice(),
+                        item.getTotal());
+                os.write(line.getBytes());
+            }
+
+            os.write("--------------------------------\n".getBytes());
+
+            // Totales
+            os.write(escPosCommands.setAlignment(EscPosCommands.ALIGN_RIGHT));
+            os.write(("SUBTOTAL: $" + String.format("%.2f", ticketRequest.getSubtotal()) + "\n").getBytes());
+            os.write(("IVA: $" + String.format("%.2f", ticketRequest.getTax()) + "\n").getBytes());
+            os.write(escPosCommands.setBold(true));
+            os.write(("TOTAL: $" + String.format("%.2f", ticketRequest.getTotal()) + "\n\n").getBytes());
+            os.write(escPosCommands.setBold(false));
+
+            // Forma de pago
+            os.write(escPosCommands.setAlignment(EscPosCommands.ALIGN_LEFT));
+            os.write(("Forma de pago: " + ticketRequest.getPaymentMethod() + "\n").getBytes());
+
+            // Pie de ticket
+            os.write(escPosCommands.setAlignment(EscPosCommands.ALIGN_CENTER));
+            os.write("\nGRACIAS POR SU COMPRA\n\n".getBytes());
+
+            // Imprimir código de barras o QR si es necesario
+            if (ticketRequest.getQrContent() != null && !ticketRequest.getQrContent().isEmpty()) {
+                os.write(escPosCommands.printQRCode(ticketRequest.getQrContent()));
+                os.write("\n".getBytes());
+            }
+
+            os.write(escPosCommands.feedLines(13));
+            os.write(".\n".getBytes());
+            openCashDrawer();
+
+            // Cortar papel
+            os.write(escPosCommands.cutPaper());
+            os.flush();
+
+            LOGGER.info("Ticket impreso correctamente");
+        }
+    }
+
+    public void printTestTicket() throws IOException {
+        LOGGER.info("Imprimiendo ticket de prueba");
+
+        try (OutputStream os = printerConnector.getOutputStream()) {
+            // Inicializar impresora
+            os.write(escPosCommands.initPrinter());
+
+            // Contenido de prueba
+            os.write(escPosCommands.setAlignment(EscPosCommands.ALIGN_CENTER));
+            os.write(escPosCommands.setBold(true));
+            os.write("*** TICKET DE PRUEBA ***\n\n".getBytes());
+            os.write(escPosCommands.setBold(false));
+
+            os.write("Impresora configurada correctamente\n".getBytes());
+            os.write(("Modelo: " + printerName + "\n").getBytes());
+            os.write(("Puerto: " + printerPort + "\n\n").getBytes());
+
+            // Muestra de formatos
+            os.write(escPosCommands.setAlignment(EscPosCommands.ALIGN_LEFT));
+            os.write("FORMATOS DISPONIBLES:\n".getBytes());
+            os.write("--------------------------------\n".getBytes());
+
+            os.write(escPosCommands.setBold(true));
+            os.write("Texto en negrita\n".getBytes());
+            os.write(escPosCommands.setBold(false));
+
+            os.write(escPosCommands.setFontSize(1, 1));
+            os.write("Texto más grande\n".getBytes());
+            os.write(escPosCommands.setFontSize(0, 0));
+
+            os.write(escPosCommands.setUnderline(true));
+            os.write("Texto subrayado\n".getBytes());
+            os.write(escPosCommands.setUnderline(false));
+
+            os.write(escPosCommands.setAlignment(EscPosCommands.ALIGN_CENTER));
+            os.write("Texto centrado\n".getBytes());
+
+            os.write(escPosCommands.setAlignment(EscPosCommands.ALIGN_RIGHT));
+            os.write("Texto a la derecha\n".getBytes());
+
+            os.write(escPosCommands.setAlignment(EscPosCommands.ALIGN_LEFT));
+            os.write("Texto a la izquierda\n\n".getBytes());
+
+            // Códigos de barras/QR de prueba
+            os.write(escPosCommands.setAlignment(EscPosCommands.ALIGN_CENTER));
+            os.write("CÓDIGO QR DE PRUEBA:\n".getBytes());
+            os.write(escPosCommands.printQRCode("https://www.example.com"));
+            os.write("\n\n".getBytes());
+
+            os.write(escPosCommands.feedLines(13));
+            os.write(".\n".getBytes());
+            openCashDrawer();
+
+            // Cortar papel
+            os.write(escPosCommands.cutPaper());
+            os.flush();
+
+            LOGGER.info("Ticket de prueba impreso correctamente");
+        }
+    }
+
+    public PrinterStatus getPrinterStatus() throws IOException {
+        LOGGER.info("Consultando estado de la impresora");
+
+        boolean isConnected = printerConnector.isConnected();
+        boolean hasPaper = true;  // En implementaciones reales, consultar estado del papel
+
+        return new PrinterStatus(isConnected, printerName, printerPort, hasPaper);
+    }
+
+    public void openCashDrawer() throws IOException {
+        LOGGER.info("Abriendo cajón monedero SAT 119X");
+
+        try (OutputStream os = printerConnector.getOutputStream()) {
+            // Enviar comando para abrir cajón
+            os.write(escPosCommands.openCashDrawer());
+            os.flush();
+
+            LOGGER.info("Comando de apertura enviado al cajón monedero");
+        }
+    }
+
+    private String truncate(String text, int length) {
+        if (text == null) return "";
+        return text.length() > length ? text.substring(0, length) : text;
+    }
+
+}
+// Content from src/main/java/org/blackequity/printer/util/EscPosCommands.java
+package org.blackequity.printer.util;
+
+
+public class EscPosCommands {
+
+    public static final byte[] ESC = {27};
+    public static final byte[] GS = {29};
+    public static final byte[] LF = {10};
+    public static final byte[] CUT = {29, 86, 65};
+
+    // Constantes para alineación
+    public static final byte ALIGN_LEFT = 0;
+    public static final byte ALIGN_CENTER = 1;
+    public static final byte ALIGN_RIGHT = 2;
+
+    /**
+     * Inicializa la impresora
+     * @return byte[] con el comando
+     */
+    public byte[] initPrinter() {
+        byte[] command = new byte[]{
+                27, 33, 0,   // ESC ! 0 - Reset formato de texto
+                27, 97, 0    // ESC a 0 - Alineación izquierda
+        };
+        return command;
+    }
+
+    /**
+     * Establece la alineación del texto
+     * @param alignment tipo de alineación (0-izquierda, 1-centro, 2-derecha)
+     * @return byte[] con el comando
+     */
+    public byte[] setAlignment(byte alignment) {
+        byte[] command = new byte[3];
+        command[0] = ESC[0];
+        command[1] = 97; // a
+        command[2] = alignment;
+        return command;
+    }
+
+    public byte[] setBold(boolean enabled) {
+        byte[] command = new byte[3];
+        command[0] = ESC[0];
+        command[1] = 69; // E
+        command[2] = (byte)(enabled ? 1 : 0);
+        return command;
+    }
+
+    public byte[] setFontSize(int width, int height) {
+        byte[] command = new byte[3];
+        command[0] = GS[0];
+        command[1] = 33; // !
+        // Valor combinado: 1-2 bits para ancho, 3-4 bits para altura
+        command[2] = (byte)((width & 0x01) << 4 | (height & 0x01) << 5);
+        return command;
+    }
+
+    public byte[] setUnderline(boolean enabled) {
+        byte[] command = new byte[3];
+        command[0] = ESC[0];
+        command[1] = 45; // -
+        command[2] = (byte)(enabled ? 1 : 0);
+        return command;
+    }
+
+    public byte[] printQRCode(String content) {
+        byte[] contentBytes = content.getBytes();
+        int contentLength = contentBytes.length;
+
+        // Ajustar tamaño del código QR
+        byte[] modelCommand = new byte[]{GS[0], 40, 107, 4, 0, 49, 65, 49, 0};
+
+        // Establecer tamaño de módulo (unidad): 1-16 (por defecto 3)
+        byte[] sizeCommand = new byte[]{GS[0], 40, 107, 3, 0, 49, 67, 4};
+
+        // Nivel de corrección de errores: 48-L(7%), 49-M(15%), 50-Q(25%), 51-H(30%)
+        byte[] correctionCommand = new byte[]{GS[0], 40, 107, 3, 0, 49, 69, 48};
+
+        // Almacenar datos
+        byte[] storeCommand = new byte[contentLength + 8];
+        storeCommand[0] = GS[0];
+        storeCommand[1] = 40;  // (
+        storeCommand[2] = 107; // k
+        storeCommand[3] = (byte)(contentLength + 3);
+        storeCommand[4] = 0;
+        storeCommand[5] = 49;  // 1
+        storeCommand[6] = 80;  // P
+        storeCommand[7] = 48;  // 0
+
+        System.arraycopy(contentBytes, 0, storeCommand, 8, contentLength);
+
+        // Imprimir código QR
+        byte[] printCommand = new byte[]{GS[0], 40, 107, 3, 0, 49, 81, 48};
+
+        // Combine all commands
+        byte[] result = new byte[modelCommand.length + sizeCommand.length +
+                correctionCommand.length + storeCommand.length +
+                printCommand.length];
+
+        System.arraycopy(modelCommand, 0, result, 0, modelCommand.length);
+        int pos = modelCommand.length;
+
+        System.arraycopy(sizeCommand, 0, result, pos, sizeCommand.length);
+        pos += sizeCommand.length;
+
+        System.arraycopy(correctionCommand, 0, result, pos, correctionCommand.length);
+        pos += correctionCommand.length;
+
+        System.arraycopy(storeCommand, 0, result, pos, storeCommand.length);
+        pos += storeCommand.length;
+
+        System.arraycopy(printCommand, 0, result, pos, printCommand.length);
+
+        return result;
+    }
+
+    public byte[] cutPaper() {
+        return CUT;
+    }
+
+    /**
+     * Avanzar línea
+     * @param lines número de líneas a avanzar
+     * @return byte[] con el comando
+     */
+    public byte[] feedLines(int lines) {
+        byte[] command = new byte[3];
+        command[0] = ESC[0];
+        command[1] = 100; // d
+        command[2] = (byte)lines;
+        return command;
+    }
+
+    public byte[] openCashDrawer() {
+        byte[] command = new byte[5];
+        command[0] = ESC[0];
+        command[1] = 112; // p
+        command[2] = 0;   // Pin 2
+        command[3] = 50;  // Tiempo de activación 50ms
+        command[4] = 100; // Tiempo de espera 100ms
+        return command;
+    }
+
+}
