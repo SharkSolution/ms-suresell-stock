@@ -37,14 +37,14 @@ public class Product {
     private BigDecimal price;
 
     @Column(nullable = false)
-    private Integer stock;
+    private BigDecimal stock;
 
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
     @Column(nullable = false)
-    private Integer minStock;
+    private BigDecimal minStock;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

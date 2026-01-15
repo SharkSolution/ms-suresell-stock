@@ -9,10 +9,10 @@ public class ProductDTO {
     private Long id;
     private String name;
     private BigDecimal price;
-    private Integer stock;
-    private Integer minStock;
+    private BigDecimal stock;
+    private BigDecimal minStock;
 
-    public ProductDTO(Long id, String name, BigDecimal price, Integer stock, Integer minStock) {
+    public ProductDTO(Long id, String name, BigDecimal price, BigDecimal stock, BigDecimal minStock) {
         this.id = id;
         this.name = name;
         this.price = price;
